@@ -32,17 +32,16 @@ jobs:
 
     - name: Run Tests
       run: |
-        PYTHONPATH=$PWD:$PWD/vendor
-        if [[ -d "./tests" ]]; then
-            pipenv run test
-        fi
+        export PYTHONPATH=$PWD:$PWD/vendor
+        python -m unittest discover -v -s ./tests -p "test_*.py"
 
     - name: Run Main
       env:
         GITHUB_TOKEN: ${{ github.token }}
       run: |
-        PYTHONPATH=$PWD:$PWD/vendor
-        pipenv run main
+        export PYTHONPATH=$PWD:$PWD/vendor
+        pipenv run python3 -m cpdsa \
+          --dry-run
 
   action-test:
     runs-on: ubuntu-latest
