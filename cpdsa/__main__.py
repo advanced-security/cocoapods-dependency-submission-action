@@ -27,9 +27,8 @@ parser_github.add_argument(
     help="GitHub Repository",
 )
 parser_github.add_argument(
-    "-i",
     "--github-instance",
-    default=os.environ.get("GITHUB_API_URL", "https://api.github.com"),
+    default=os.environ.get("GITHUB_SERVER_URL", "https://github.com"),
     help="GitHub Instance",
 )
 parser_github.add_argument(
@@ -62,6 +61,7 @@ if __name__ == "__main__":
 
     depgraph = DependencyGraph(GitHub.repository)
     logger.debug(f"GitHub Instance :: {GitHub}")
+    logger.debug(f"Repository :: {GitHub.repository}")
 
     if arguments.cocoapods_lock:
         lock_files.append(arguments.cocoapods_lock)
@@ -73,7 +73,7 @@ if __name__ == "__main__":
 
         dependencies = parseLockFile(lockfile)
 
-        logger.debug(f"Dependencies Count :: {len(dependencies)}")
+        logger.info(f"Dependencies Count :: {len(dependencies)}")
 
         if not arguments.dry_run:
             depgraph.submitDependencies(
