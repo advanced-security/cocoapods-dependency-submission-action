@@ -1,7 +1,10 @@
-name: 'myaction'
-description: 'My New Action'
+name: 'cocoapods-dependency-submission-action'
+description: 'CocoaPods Lockfile Dependency Submission Action'
 
 inputs:
+  cocoapods-lock:
+    description: "CocoaPods Lockfile location"
+
   repository:
     description: Repository Owner and Repository Name
     default: ${{ github.repository }}
@@ -24,8 +27,7 @@ runs:
     - shell: bash
       run: |
         export PYTHONPATH=${{ github.action_path }}:${{ github.action_path }}/vendor
-        python3 -m myaction \
+        python3 -m cpdsa \
           --github-token "${{ inputs.token }}" \
           --github-repository "${{ inputs.repository }}" \
           ${{ inputs.argvs }}
-
