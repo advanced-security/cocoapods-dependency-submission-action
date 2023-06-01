@@ -5,6 +5,8 @@ name = "pypi"
 
 [packages]
 requests = "*"
+ghastoolkit = "*"
+pyyaml = "*"
 
 [dev-packages]
 black = "*"
@@ -12,8 +14,6 @@ black = "*"
 [scripts]
 main = "python -m myaction"
 test = "python -m unittest discover -v -s ./tests -p 'test_*.py'"
-
 # formatting / linting
 fmt = "black ."
 lint = "black --check ."
-
