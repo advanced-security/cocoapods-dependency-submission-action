@@ -28,6 +28,14 @@ class TestCocoaPods(unittest.TestCase):
         self.assertEqual(dep2.name, "Yoga")
         self.assertEqual(dep2.version, "1.14")
 
+    def test_namespace(self):
+        data = "React-Core/CoreModulesHeaders (1000.0.0)"
+        dep = parsePod(data)
+        self.assertEqual(dep.name, "CoreModulesHeaders")
+        self.assertEqual(dep.namespace, "React-Core")
+        self.assertEqual(dep.version, "1000.0.0")
+        
+
     def test_no_version(self):
         data = "Flipper-Boost-iOSX"
         dep = parsePod(data)

@@ -15,6 +15,9 @@ def findCocoaPods(path: str) -> list[str]:
     return results
 
 def parsePod(pod: str) -> Dependency:
+    namespace = None
+    version = None
+
     if " " in pod:
         name, version = pod.split(" ", 1)
         # process `(`, `)`
@@ -22,12 +25,14 @@ def parsePod(pod: str) -> Dependency:
         # process `= `, `~> `
         if " " in version:
             _, version = version.split(" ", 1)
+        if "/" in name:
+            namespace, name = name.split("/", 1)
     else:
         name = pod
-        version = None
 
     dep = Dependency(
         name,
+        namespace=namespace,
         version=version,
         manager="cocoapods"
     )
