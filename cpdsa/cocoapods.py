@@ -1,9 +1,9 @@
-
 import os
 import yaml
 from typing import Any, Optional, Union
 
 from ghastoolkit.octokit.dependencygraph import Dependencies, Dependency
+
 
 def findCocoaPods(path: str) -> list[str]:
     """Find all the CocoaPods Lock files"""
@@ -13,6 +13,7 @@ def findCocoaPods(path: str) -> list[str]:
             if file == "Podfile.lock":
                 results.append(os.path.join(root, file))
     return results
+
 
 def parsePod(pod: str) -> Dependency:
     namespace = None
@@ -30,15 +31,13 @@ def parsePod(pod: str) -> Dependency:
     else:
         name = pod
 
-    dep = Dependency(
-        name,
-        namespace=namespace,
-        version=version,
-        manager="cocoapods"
-    )
+    dep = Dependency(name, namespace=namespace, version=version, manager="cocoapods")
     return dep
 
-def createPod(deps: Dependencies, pods: Union[str, dict[str, Optional[list]]]) -> Dependencies:
+
+def createPod(
+    deps: Dependencies, pods: Union[str, dict[str, Optional[list]]]
+) -> Dependencies:
     if isinstance(pods, str):
         deps.append(parsePod(pods))
     else:
@@ -51,11 +50,12 @@ def createPod(deps: Dependencies, pods: Union[str, dict[str, Optional[list]]]) -
 
     return deps
 
+
 def parseLockFile(path: str) -> Dependencies:
     deps = Dependencies()
     with open(path, "r") as handle:
         data = yaml.safe_load(handle)
-    
+
     for dep in data.get("PODS", []):
         createPod(deps, dep)
 

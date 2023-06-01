@@ -1,12 +1,12 @@
-
 import unittest
 
 from ghastoolkit import Dependencies
 from cpdsa.cocoapods import createPod, parsePod
 
+
 class TestCocoaPods(unittest.TestCase):
     def test_parse_pod(self):
-        data = 'YogaKit (1.0.0)'
+        data = "YogaKit (1.0.0)"
         deps = createPod(Dependencies(), data)
 
         self.assertEqual(len(deps), 1)
@@ -15,7 +15,7 @@ class TestCocoaPods(unittest.TestCase):
         self.assertEqual(dep.version, "1.0.0")
 
     def test_parse_pods(self):
-        data = {'YogaKit (1.18.1)': ["Yoga (~> 1.14)"]}
+        data = {"YogaKit (1.18.1)": ["Yoga (~> 1.14)"]}
         deps = createPod(Dependencies(), data)
 
         self.assertEqual(len(deps), 2)
@@ -34,7 +34,6 @@ class TestCocoaPods(unittest.TestCase):
         self.assertEqual(dep.name, "CoreModulesHeaders")
         self.assertEqual(dep.namespace, "React-Core")
         self.assertEqual(dep.version, "1000.0.0")
-        
 
     def test_no_version(self):
         data = "Flipper-Boost-iOSX"

@@ -41,7 +41,7 @@ parser_github.add_argument(
 
 if __name__ == "__main__":
     arguments = parser.parse_args()
-    
+
     logging.basicConfig(
         level=logging.DEBUG
         if arguments.debug or os.environ.get("DEBUG")

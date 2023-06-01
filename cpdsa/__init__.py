@@ -1,4 +1,3 @@
-
 __name__ = "cpdsa"
 __title__ = "cocoapods-dependency-submission-action"
 

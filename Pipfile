@@ -15,5 +15,5 @@ black = "*"
 main = "python -m myaction"
 test = "python -m unittest discover -v -s ./tests -p 'test_*.py'"
 # formatting / linting
-fmt = "black ."
-lint = "black --check ."
+fmt = "black cpdsa"
+lint = "black --check cpdsa"
