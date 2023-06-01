@@ -1,0 +1,31 @@
+name: 'myaction'
+description: 'My New Action'
+
+inputs:
+  repository:
+    description: Repository Owner and Repository Name
+    default: ${{ github.repository }}
+
+  token:
+    description: GitHub Personal Access Token
+    default: ${{ github.token }}
+
+  argvs:
+    description: Additional Arguments
+
+runs:
+  using: "composite"
+  steps:
+    # [optional] Make sure your version of Python is installed
+    # - uses: actions/setup-python@v2
+    #   with:
+    #     python-version: '3.10'
+
+    - shell: bash
+      run: |
+        export PYTHONPATH=${{ github.action_path }}:${{ github.action_path }}/vendor
+        python3 -m myaction \
+          --github-token "${{ inputs.token }}" \
+          --github-repository "${{ inputs.repository }}" \
+          ${{ inputs.argvs }}
+
