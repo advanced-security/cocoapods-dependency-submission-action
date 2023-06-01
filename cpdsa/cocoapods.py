@@ -1,7 +1,7 @@
 
 import os
 import yaml
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from ghastoolkit.octokit.dependencygraph import Dependencies, Dependency
 
@@ -33,7 +33,7 @@ def parsePod(pod: str) -> Dependency:
     )
     return dep
 
-def createPod(deps: Dependencies, pods: str | dict[str, Optional[list]]) -> Dependencies:
+def createPod(deps: Dependencies, pods: Union[str, dict[str, Optional[list]]]) -> Dependencies:
     if isinstance(pods, str):
         deps.append(parsePod(pods))
     else:
