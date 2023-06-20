@@ -1,6 +1,6 @@
 # cocoapods-dependency-submission-action
 
-This is the [CocoaPods Dependency Submission Action](https://github.com/GeekMasher/cocoapods-dependency-submission-action) which parses CocoaPods Lock files and submits the dependencies to the [Dependency Graph Submission API](https://docs.github.com/en/enterprise-cloud@latest/code-security/supply-chain-security/understanding-your-software-supply-chain/using-the-dependency-submission-api).
+This is the [CocoaPods Dependency Submission Action](https://github.com/advanced-security/cocoapods-dependency-submission-action) which parses CocoaPods Lock files and submits the dependencies to the [Dependency Graph Submission API](https://docs.github.com/en/enterprise-cloud@latest/code-security/supply-chain-security/understanding-your-software-supply-chain/using-the-dependency-submission-api).
 
 This means thats [GitHub's Dependabot](https://docs.github.com/en/enterprise-cloud@latest/code-security/dependabot/dependabot-alerts/about-dependabot-alerts) can use the CocoaPods to check for security vulnerabilities in your dependencies and keeping your Software Bill of Materials up to date.
 
@@ -8,14 +8,14 @@ This means thats [GitHub's Dependabot](https://docs.github.com/en/enterprise-clo
 
 ```yaml
 - name: CocoaPods Dependency Submission Action
-  uses: GeekMasher/cocoapods-dependency-submission-action@v1.0
+  uses: advanced-security/cocoapods-dependency-submission-action@v1.0
 ```
 
 ### Action Inputs
 
 ```yaml
 - name: CocoaPods Dependency Submission Action
-  uses: GeekMasher/cocoapods-dependency-submission-action@v1.0
+  uses: advanced-security/cocoapods-dependency-submission-action@v1.0
   with:
     # [optonal] The path to the Podfile.lock file. Defaults to finding all 
     # Podfile.lock in the current working directory
@@ -46,7 +46,7 @@ jobs:
       # ... generate CocoaPods Podfile.lock
 
       - name: CocoaPods Dependency Submission Action
-        uses: GeekMasher/cocoapods-dependency-submission-action@v1.0
+        uses: advanced-security/cocoapods-dependency-submission-action@v1.0
 ```
 
 ## License
