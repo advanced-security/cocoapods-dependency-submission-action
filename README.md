@@ -8,14 +8,14 @@ This means thats [GitHub's Dependabot](https://docs.github.com/en/enterprise-clo
 
 ```yaml
 - name: CocoaPods Dependency Submission Action
-  uses: advanced-security/cocoapods-dependency-submission-action@v1.0
+  uses: advanced-security/cocoapods-dependency-submission-action@v1.1
 ```
 
 ### Action Inputs
 
 ```yaml
 - name: CocoaPods Dependency Submission Action
-  uses: advanced-security/cocoapods-dependency-submission-action@v1.0
+  uses: advanced-security/cocoapods-dependency-submission-action@v1.1
   with:
     # [optonal] The path to the Podfile.lock file. Defaults to finding all 
     # Podfile.lock in the current working directory
@@ -46,7 +46,7 @@ jobs:
       # ... generate CocoaPods Podfile.lock
 
       - name: CocoaPods Dependency Submission Action
-        uses: advanced-security/cocoapods-dependency-submission-action@v1.0
+        uses: advanced-security/cocoapods-dependency-submission-action@v1.1
 ```
 
 ## License
