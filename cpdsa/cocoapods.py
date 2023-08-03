@@ -31,7 +31,7 @@ def parsePod(pod: str) -> Dependency:
     else:
         name = pod
 
-    dep = Dependency(name, namespace=namespace, version=version, manager="swift")
+    dep = Dependency(name, namespace=namespace, version=version, manager="cocoapods")
     return dep
 
 
