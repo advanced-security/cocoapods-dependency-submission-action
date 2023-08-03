@@ -2,20 +2,20 @@
 
 This is the [CocoaPods Dependency Submission Action](https://github.com/advanced-security/cocoapods-dependency-submission-action) which parses CocoaPods Lock files and submits the dependencies to the [Dependency Graph Submission API](https://docs.github.com/en/enterprise-cloud@latest/code-security/supply-chain-security/understanding-your-software-supply-chain/using-the-dependency-submission-api).
 
-This means thats [GitHub's Dependabot](https://docs.github.com/en/enterprise-cloud@latest/code-security/dependabot/dependabot-alerts/about-dependabot-alerts) can use the CocoaPods to check for security vulnerabilities in your dependencies and keeping your Software Bill of Materials up to date.
+Sadly, [GitHub's Security Advisory Database](https://github.com/advisories) does not contain CocoaPods security alert information which means no security vulnerabilities in your dependencies will be reported. This project is mainly to keep your Software Bill of Materials up to date and complete.
 
 ## Usage
 
 ```yaml
 - name: CocoaPods Dependency Submission Action
-  uses: advanced-security/cocoapods-dependency-submission-action@v1.0
+  uses: advanced-security/cocoapods-dependency-submission-action@v1.1
 ```
 
 ### Action Inputs
 
 ```yaml
 - name: CocoaPods Dependency Submission Action
-  uses: advanced-security/cocoapods-dependency-submission-action@v1.0
+  uses: advanced-security/cocoapods-dependency-submission-action@v1.1
   with:
     # [optonal] The path to the Podfile.lock file. Defaults to finding all 
     # Podfile.lock in the current working directory
@@ -46,7 +46,7 @@ jobs:
       # ... generate CocoaPods Podfile.lock
 
       - name: CocoaPods Dependency Submission Action
-        uses: advanced-security/cocoapods-dependency-submission-action@v1.0
+        uses: advanced-security/cocoapods-dependency-submission-action@v1.1
 ```
 
 ## License
