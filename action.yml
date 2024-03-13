@@ -30,4 +30,5 @@ runs:
         python3 -m cpdsa \
           --github-token "${{ inputs.token }}" \
           --github-repository "${{ inputs.repository }}" \
+          --cocoapods-lock "${{ inputs.cocoapods-lock }}" \
           ${{ inputs.argvs }}

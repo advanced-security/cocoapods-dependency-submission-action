@@ -64,8 +64,10 @@ if __name__ == "__main__":
     logger.debug(f"Repository :: {GitHub.repository}")
 
     if arguments.cocoapods_lock:
+        logger.info(f"Lockfile provided :: {arguments.cocoapods_lock}")
         lock_files.append(arguments.cocoapods_lock)
     else:
+        logger.info("Lockfile not provided, searching for lockfiles")
         lock_files = findCocoaPods(".")
 
     for lockfile in lock_files:
