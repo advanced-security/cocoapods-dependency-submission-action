@@ -2,7 +2,9 @@
 
 This is the [CocoaPods Dependency Submission Action](https://github.com/advanced-security/cocoapods-dependency-submission-action) which parses CocoaPods Lock files and submits the dependencies to the [Dependency Graph Submission API](https://docs.github.com/en/enterprise-cloud@latest/code-security/supply-chain-security/understanding-your-software-supply-chain/using-the-dependency-submission-api).
 
-Sadly, [GitHub's Security Advisory Database](https://github.com/advisories) does not contain CocoaPods security alert information which means no security vulnerabilities in your dependencies will be reported. This project is mainly to keep your Software Bill of Materials up to date and complete.
+> [!WARNING]
+> Sadly, [GitHub's Security Advisory Database](https://github.com/advisories) does not contain CocoaPods security alert information which means no security vulnerabilities in your dependencies will be reported.
+> This project is mainly to keep your Software Bill of Materials up to date and complete.
 
 ## Usage
 
