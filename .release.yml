@@ -1,0 +1,7 @@
+name: cocoapods-dependency-submission-action
+repository: advanced-security/cocoapods-dependency-submission-action
+version: 1.2.0
+
+ecosystems:
+  - Docs
+  - Python

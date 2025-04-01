@@ -3,8 +3,7 @@ import json
 import logging
 import argparse
 
-from ghastoolkit.octokit.github import GitHub
-from ghastoolkit.octokit.dependencygraph import DependencyGraph
+from ghastoolkit import GitHub, DependencyGraph
 
 from cpdsa import __name__ as tool_name
 from cpdsa.cocoapods import parseLockFile, findCocoaPods
