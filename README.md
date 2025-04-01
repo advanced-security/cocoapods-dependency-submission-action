@@ -10,14 +10,14 @@ This is the [CocoaPods Dependency Submission Action](https://github.com/advanced
 
 ```yaml
 - name: CocoaPods Dependency Submission Action
-  uses: advanced-security/cocoapods-dependency-submission-action@v1.1
+  uses: advanced-security/cocoapods-dependency-submission-action@v1.2.0
 ```
 
 ### Action Inputs
 
 ```yaml
 - name: CocoaPods Dependency Submission Action
-  uses: advanced-security/cocoapods-dependency-submission-action@v1.1
+  uses: advanced-security/cocoapods-dependency-submission-action@v1.2.0
   with:
     # [optonal] The path to the Podfile.lock file. Defaults to finding all 
     # Podfile.lock in the current working directory
@@ -48,7 +48,7 @@ jobs:
       # ... generate CocoaPods Podfile.lock
 
       - name: CocoaPods Dependency Submission Action
-        uses: advanced-security/cocoapods-dependency-submission-action@v1.1
+        uses: advanced-security/cocoapods-dependency-submission-action@v1.2.0
 ```
 
 ## License
