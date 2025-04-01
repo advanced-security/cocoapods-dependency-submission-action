@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import hmac
 import os
 import socket
@@ -7,7 +8,6 @@ import sys
 import typing
 import warnings
 from binascii import unhexlify
-from hashlib import md5, sha1, sha256
 
 from ..exceptions import ProxySchemeUnsupported, SSLError
 from .url import _BRACELESS_IPV6_ADDRZ_RE, _IPV4_RE
@@ -16,64 +16,72 @@ SSLContext = None
 SSLTransport = None
 HAS_NEVER_CHECK_COMMON_NAME = False
 IS_PYOPENSSL = False
-IS_SECURETRANSPORT = False
 ALPN_PROTOCOLS = ["http/1.1"]
 
 _TYPE_VERSION_INFO = typing.Tuple[int, int, int, str, int]
 
 # Maps the length of a digest to a possible hash function producing this digest
-HASHFUNC_MAP = {32: md5, 40: sha1, 64: sha256}
+HASHFUNC_MAP = {
+    length: getattr(hashlib, algorithm, None)
+    for length, algorithm in ((32, "md5"), (40, "sha1"), (64, "sha256"))
+}
 
 
 def _is_bpo_43522_fixed(
-    implementation_name: str, version_info: _TYPE_VERSION_INFO
+    implementation_name: str,
+    version_info: _TYPE_VERSION_INFO,
+    pypy_version_info: _TYPE_VERSION_INFO | None,
 ) -> bool:
-    """Return True for CPython 3.8.9+, 3.9.3+ or 3.10+ where setting
-    SSLContext.hostname_checks_common_name to False works.
-
-    PyPy 7.3.7 doesn't work as it doesn't ship with OpenSSL 1.1.1l+
-    so we're waiting for a version of PyPy that works before
-    allowing this function to return 'True'.
+    """Return True for CPython 3.8.9+, 3.9.3+ or 3.10+ and PyPy 7.3.8+ where
+    setting SSLContext.hostname_checks_common_name to False works.
 
     Outside of CPython and PyPy we don't know which implementations work
     or not so we conservatively use our hostname matching as we know that works
     on all implementations.
 
     https://github.com/urllib3/urllib3/issues/2192#issuecomment-821832963
-    https://foss.heptapod.net/pypy/pypy/-/issues/3539#
+    https://foss.heptapod.net/pypy/pypy/-/issues/3539
     """
-    if implementation_name != "cpython":
+    if implementation_name == "pypy":
+        # https://foss.heptapod.net/pypy/pypy/-/issues/3129
+        return pypy_version_info >= (7, 3, 8)  # type: ignore[operator]
+    elif implementation_name == "cpython":
+        major_minor = version_info[:2]
+        micro = version_info[2]
+        return (
+            (major_minor == (3, 8) and micro >= 9)
+            or (major_minor == (3, 9) and micro >= 3)
+            or major_minor >= (3, 10)
+        )
+    else:  # Defensive:
         return False
-
-    major_minor = version_info[:2]
-    micro = version_info[2]
-    return (
-        (major_minor == (3, 8) and micro >= 9)
-        or (major_minor == (3, 9) and micro >= 3)
-        or major_minor >= (3, 10)
-    )
 
 
 def _is_has_never_check_common_name_reliable(
+    openssl_version: str,
     openssl_version_number: int,
     implementation_name: str,
     version_info: _TYPE_VERSION_INFO,
+    pypy_version_info: _TYPE_VERSION_INFO | None,
 ) -> bool:
+    # As of May 2023, all released versions of LibreSSL fail to reject certificates with
+    # only common names, see https://github.com/urllib3/urllib3/pull/3024
+    is_openssl = openssl_version.startswith("OpenSSL ")
     # Before fixing OpenSSL issue #14579, the SSL_new() API was not copying hostflags
     # like X509_CHECK_FLAG_NEVER_CHECK_SUBJECT, which tripped up CPython.
     # https://github.com/openssl/openssl/issues/14579
     # This was released in OpenSSL 1.1.1l+ (>=0x101010cf)
     is_openssl_issue_14579_fixed = openssl_version_number >= 0x101010CF
 
-    return is_openssl_issue_14579_fixed or _is_bpo_43522_fixed(
-        implementation_name, version_info
+    return is_openssl and (
+        is_openssl_issue_14579_fixed
+        or _is_bpo_43522_fixed(implementation_name, version_info, pypy_version_info)
     )
 
 
 if typing.TYPE_CHECKING:
     from ssl import VerifyMode
-
-    from typing_extensions import Literal, TypedDict
+    from typing import TypedDict
 
     from .ssltransport import SSLTransport as SSLTransportType
 
@@ -93,6 +101,7 @@ try:  # Do we have ssl at all?
         HAS_NEVER_CHECK_COMMON_NAME,
         OP_NO_COMPRESSION,
         OP_NO_TICKET,
+        OPENSSL_VERSION,
         OPENSSL_VERSION_NUMBER,
         PROTOCOL_TLS,
         PROTOCOL_TLS_CLIENT,
@@ -107,9 +116,11 @@ try:  # Do we have ssl at all?
     # Setting SSLContext.hostname_checks_common_name = False didn't work before CPython
     # 3.8.9, 3.9.3, and 3.10 (but OK on PyPy) or OpenSSL 1.1.1l+
     if HAS_NEVER_CHECK_COMMON_NAME and not _is_has_never_check_common_name_reliable(
+        OPENSSL_VERSION,
         OPENSSL_VERSION_NUMBER,
         sys.implementation.name,
         sys.version_info,
+        sys.pypy_version_info if sys.implementation.name == "pypy" else None,  # type: ignore[attr-defined]
     ):
         HAS_NEVER_CHECK_COMMON_NAME = False
 
@@ -151,9 +162,13 @@ def assert_fingerprint(cert: bytes | None, fingerprint: str) -> None:
 
     fingerprint = fingerprint.replace(":", "").lower()
     digest_length = len(fingerprint)
-    hashfunc = HASHFUNC_MAP.get(digest_length)
-    if not hashfunc:
+    if digest_length not in HASHFUNC_MAP:
         raise SSLError(f"Fingerprint of invalid length: {fingerprint}")
+    hashfunc = HASHFUNC_MAP.get(digest_length)
+    if hashfunc is None:
+        raise SSLError(
+            f"Hash function implementation unavailable for fingerprint length: {digest_length}"
+        )
 
     # We need encode() here for py32; works on py2 and p33.
     fingerprint_bytes = unhexlify(fingerprint.encode())
@@ -311,13 +326,9 @@ def create_urllib3_context(
 
     # Enable post-handshake authentication for TLS 1.3, see GH #1634. PHA is
     # necessary for conditional client cert authentication with TLS 1.3.
-    # The attribute is None for OpenSSL <= 1.1.0 or does not exist in older
-    # versions of Python.  We only enable on Python 3.7.4+ or if certificate
-    # verification is enabled to work around Python issue #37428
-    # See: https://bugs.python.org/issue37428
-    if (cert_reqs == ssl.CERT_REQUIRED or sys.version_info >= (3, 7, 4)) and getattr(
-        context, "post_handshake_auth", None
-    ) is not None:
+    # The attribute is None for OpenSSL <= 1.1.0 or does not exist when using
+    # an SSLContext created by pyOpenSSL.
+    if getattr(context, "post_handshake_auth", None) is not None:
         context.post_handshake_auth = True
 
     # The order of the below lines setting verify_mode and check_hostname
@@ -334,7 +345,7 @@ def create_urllib3_context(
 
     try:
         context.hostname_checks_common_name = False
-    except AttributeError:
+    except AttributeError:  # Defensive: for CPython < 3.8.9 and 3.9.3; for PyPy < 7.3.8
         pass
 
     # Enable logging of TLS session keys via defacto standard environment variable
@@ -361,7 +372,7 @@ def ssl_wrap_socket(
     ca_cert_dir: str | None = ...,
     key_password: str | None = ...,
     ca_cert_data: None | str | bytes = ...,
-    tls_in_tls: Literal[False] = ...,
+    tls_in_tls: typing.Literal[False] = ...,
 ) -> ssl.SSLSocket:
     ...
 
@@ -401,8 +412,10 @@ def ssl_wrap_socket(
     tls_in_tls: bool = False,
 ) -> ssl.SSLSocket | SSLTransportType:
     """
-    All arguments except for server_hostname, ssl_context, and ca_cert_dir have
-    the same meaning as they do when using :func:`ssl.wrap_socket`.
+    All arguments except for server_hostname, ssl_context, tls_in_tls, ca_cert_data and
+    ca_cert_dir have the same meaning as they do when using
+    :func:`ssl.create_default_context`, :meth:`ssl.SSLContext.load_cert_chain`,
+    :meth:`ssl.SSLContext.set_ciphers` and :meth:`ssl.SSLContext.wrap_socket`.
 
     :param server_hostname:
         When SNI is supported, the expected hostname of the certificate
@@ -451,10 +464,7 @@ def ssl_wrap_socket(
         else:
             context.load_cert_chain(certfile, keyfile, key_password)
 
-    try:
-        context.set_alpn_protocols(ALPN_PROTOCOLS)
-    except NotImplementedError:  # Defensive: in CI, we always have set_alpn_protocols
-        pass
+    context.set_alpn_protocols(ALPN_PROTOCOLS)
 
     ssl_sock = _ssl_wrap_socket_impl(sock, context, tls_in_tls, server_hostname)
     return ssl_sock
