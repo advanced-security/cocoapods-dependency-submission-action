@@ -1,6 +1,6 @@
 import logging
 from os import PathLike
-from typing import Any, BinaryIO, List, Optional, Set
+from typing import BinaryIO, List, Optional, Set, Union
 
 from .cd import (
     coherence_ratio,
@@ -31,7 +31,7 @@ explain_handler.setFormatter(
 
 
 def from_bytes(
-    sequences: bytes,
+    sequences: Union[bytes, bytearray],
     steps: int = 5,
     chunk_size: int = 512,
     threshold: float = 0.2,
@@ -40,6 +40,7 @@ def from_bytes(
     preemptive_behaviour: bool = True,
     explain: bool = False,
     language_threshold: float = 0.1,
+    enable_fallback: bool = True,
 ) -> CharsetMatches:
     """
     Given a raw bytes sequence, return the best possibles charset usable to render str objects.
@@ -158,6 +159,8 @@ def from_bytes(
 
     results: CharsetMatches = CharsetMatches()
 
+    early_stop_results: CharsetMatches = CharsetMatches()
+
     sig_encoding, sig_payload = identify_sig_or_bom(sequences)
 
     if sig_encoding is not None:
@@ -220,16 +223,20 @@ def from_bytes(
         try:
             if is_too_large_sequence and is_multi_byte_decoder is False:
                 str(
-                    sequences[: int(50e4)]
-                    if strip_sig_or_bom is False
-                    else sequences[len(sig_payload) : int(50e4)],
+                    (
+                        sequences[: int(50e4)]
+                        if strip_sig_or_bom is False
+                        else sequences[len(sig_payload) : int(50e4)]
+                    ),
                     encoding=encoding_iana,
                 )
             else:
                 decoded_payload = str(
-                    sequences
-                    if strip_sig_or_bom is False
-                    else sequences[len(sig_payload) :],
+                    (
+                        sequences
+                        if strip_sig_or_bom is False
+                        else sequences[len(sig_payload) :]
+                    ),
                     encoding=encoding_iana,
                 )
         except (UnicodeDecodeError, LookupError) as e:
@@ -361,11 +368,18 @@ def from_bytes(
             )
             # Preparing those fallbacks in case we got nothing.
             if (
-                encoding_iana in ["ascii", "utf_8", specified_encoding]
+                enable_fallback
+                and encoding_iana in ["ascii", "utf_8", specified_encoding]
                 and not lazy_str_hard_failure
             ):
                 fallback_entry = CharsetMatch(
-                    sequences, encoding_iana, threshold, False, [], decoded_payload
+                    sequences,
+                    encoding_iana,
+                    threshold,
+                    False,
+                    [],
+                    decoded_payload,
+                    preemptive_declaration=specified_encoding,
                 )
                 if encoding_iana == specified_encoding:
                     fallback_specified = fallback_entry
@@ -419,28 +433,58 @@ def from_bytes(
                 ),
             )
 
-        results.append(
-            CharsetMatch(
-                sequences,
-                encoding_iana,
-                mean_mess_ratio,
-                bom_or_sig_available,
-                cd_ratios_merged,
-                decoded_payload,
-            )
+        current_match = CharsetMatch(
+            sequences,
+            encoding_iana,
+            mean_mess_ratio,
+            bom_or_sig_available,
+            cd_ratios_merged,
+            (
+                decoded_payload
+                if (
+                    is_too_large_sequence is False
+                    or encoding_iana in [specified_encoding, "ascii", "utf_8"]
+                )
+                else None
+            ),
+            preemptive_declaration=specified_encoding,
         )
+
+        results.append(current_match)
 
         if (
             encoding_iana in [specified_encoding, "ascii", "utf_8"]
             and mean_mess_ratio < 0.1
         ):
+            # If md says nothing to worry about, then... stop immediately!
+            if mean_mess_ratio == 0.0:
+                logger.debug(
+                    "Encoding detection: %s is most likely the one.",
+                    current_match.encoding,
+                )
+                if explain:
+                    logger.removeHandler(explain_handler)
+                    logger.setLevel(previous_logger_level)
+                return CharsetMatches([current_match])
+
+            early_stop_results.append(current_match)
+
+        if (
+            len(early_stop_results)
+            and (specified_encoding is None or specified_encoding in tested)
+            and "ascii" in tested
+            and "utf_8" in tested
+        ):
+            probable_result: CharsetMatch = early_stop_results.best()  # type: ignore[assignment]
             logger.debug(
-                "Encoding detection: %s is most likely the one.", encoding_iana
+                "Encoding detection: %s is most likely the one.",
+                probable_result.encoding,
             )
             if explain:
                 logger.removeHandler(explain_handler)
                 logger.setLevel(previous_logger_level)
-            return CharsetMatches([results[encoding_iana]])
+
+            return CharsetMatches([probable_result])
 
         if encoding_iana == sig_encoding:
             logger.debug(
@@ -507,6 +551,7 @@ def from_fp(
     preemptive_behaviour: bool = True,
     explain: bool = False,
     language_threshold: float = 0.1,
+    enable_fallback: bool = True,
 ) -> CharsetMatches:
     """
     Same thing than the function from_bytes but using a file pointer that is already ready.
@@ -522,11 +567,12 @@ def from_fp(
         preemptive_behaviour,
         explain,
         language_threshold,
+        enable_fallback,
     )
 
 
 def from_path(
-    path: "PathLike[Any]",
+    path: Union[str, bytes, PathLike],  # type: ignore[type-arg]
     steps: int = 5,
     chunk_size: int = 512,
     threshold: float = 0.20,
@@ -535,6 +581,7 @@ def from_path(
     preemptive_behaviour: bool = True,
     explain: bool = False,
     language_threshold: float = 0.1,
+    enable_fallback: bool = True,
 ) -> CharsetMatches:
     """
     Same thing than the function from_bytes but with one extra step. Opening and reading given file path in binary mode.
@@ -551,4 +598,71 @@ def from_path(
             preemptive_behaviour,
             explain,
             language_threshold,
+            enable_fallback,
         )
+
+
+def is_binary(
+    fp_or_path_or_payload: Union[PathLike, str, BinaryIO, bytes],  # type: ignore[type-arg]
+    steps: int = 5,
+    chunk_size: int = 512,
+    threshold: float = 0.20,
+    cp_isolation: Optional[List[str]] = None,
+    cp_exclusion: Optional[List[str]] = None,
+    preemptive_behaviour: bool = True,
+    explain: bool = False,
+    language_threshold: float = 0.1,
+    enable_fallback: bool = False,
+) -> bool:
+    """
+    Detect if the given input (file, bytes, or path) points to a binary file. aka. not a string.
+    Based on the same main heuristic algorithms and default kwargs at the sole exception that fallbacks match
+    are disabled to be stricter around ASCII-compatible but unlikely to be a string.
+    """
+    if isinstance(fp_or_path_or_payload, (str, PathLike)):
+        guesses = from_path(
+            fp_or_path_or_payload,
+            steps=steps,
+            chunk_size=chunk_size,
+            threshold=threshold,
+            cp_isolation=cp_isolation,
+            cp_exclusion=cp_exclusion,
+            preemptive_behaviour=preemptive_behaviour,
+            explain=explain,
+            language_threshold=language_threshold,
+            enable_fallback=enable_fallback,
+        )
+    elif isinstance(
+        fp_or_path_or_payload,
+        (
+            bytes,
+            bytearray,
+        ),
+    ):
+        guesses = from_bytes(
+            fp_or_path_or_payload,
+            steps=steps,
+            chunk_size=chunk_size,
+            threshold=threshold,
+            cp_isolation=cp_isolation,
+            cp_exclusion=cp_exclusion,
+            preemptive_behaviour=preemptive_behaviour,
+            explain=explain,
+            language_threshold=language_threshold,
+            enable_fallback=enable_fallback,
+        )
+    else:
+        guesses = from_fp(
+            fp_or_path_or_payload,
+            steps=steps,
+            chunk_size=chunk_size,
+            threshold=threshold,
+            cp_isolation=cp_isolation,
+            cp_exclusion=cp_exclusion,
+            preemptive_behaviour=preemptive_behaviour,
+            explain=explain,
+            language_threshold=language_threshold,
+            enable_fallback=enable_fallback,
+        )
+
+    return not guesses
