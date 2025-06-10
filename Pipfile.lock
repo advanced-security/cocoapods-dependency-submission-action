@@ -122,12 +122,12 @@
         },
         "ghastoolkit": {
             "hashes": [
-                "sha256:02307e3293184336350ea4fe4e622478ae1ca6a7ae6baea918a5f702be7d33df",
-                "sha256:28bb710fabe8315c86054e0bbb472d5b1fdede0e5f032b4505d144e97da1022f"
+                "sha256:0dd2199a8809c0f7edd98b8f4dec84159dc1e77ef8ec7e11741dda7f74c9533c",
+                "sha256:f5e35fc8f8ee8bb60dd9ec81889a61c5b53caadf232d366c89f16baec5513c39"
             ],
             "index": "pypi",
-            "markers": "python_version >= '3.9'",
-            "version": "==0.15.1"
+            "markers": "python_version >= '3.10'",
+            "version": "==0.17.7"
         },
         "idna": {
             "hashes": [
