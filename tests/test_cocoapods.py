@@ -10,7 +10,7 @@ class TestCocoaPods(unittest.TestCase):
         deps = createPod(Dependencies(), data)
 
         self.assertEqual(len(deps), 1)
-        dep = deps.pop(0)
+        dep = deps.find("YogaKit")
         self.assertEqual(dep.name, "YogaKit")
         self.assertEqual(dep.version, "1.0.0")
 
@@ -20,11 +20,11 @@ class TestCocoaPods(unittest.TestCase):
 
         self.assertEqual(len(deps), 2)
 
-        dep1 = deps.pop(0)
+        dep1 = deps.find("YogaKit")
         self.assertEqual(dep1.name, "YogaKit")
         self.assertEqual(dep1.version, "1.18.1")
 
-        dep2 = deps.pop(0)
+        dep2 = deps.find("Yoga")
         self.assertEqual(dep2.name, "Yoga")
         self.assertEqual(dep2.version, "1.14")
 
