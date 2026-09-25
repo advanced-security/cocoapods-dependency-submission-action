@@ -5,7 +5,7 @@ import argparse
 
 from datetime import datetime, timezone
 
-from ghastoolkit import GitHub, DependencyGraph
+from ghastoolkit import Dependencies, GitHub, DependencyGraph
 
 from cpdsa import __name__ as tool_name
 from cpdsa.cocoapods import parseLockFile, findCocoaPods
@@ -40,7 +40,9 @@ parser_github.add_argument(
 )
 
 
-def exportBOM(dependencies, path: str, sha: str = "", ref: str = "") -> dict:
+def exportSnapshot(
+    dependencies: Dependencies, path: str, sha: str = "", ref: str = ""
+) -> dict:
     """Export the dependency snapshot payload.
 
     ghastoolkit sets `scanned` to a naive local timestamp which the snapshots
@@ -94,7 +96,9 @@ if __name__ == "__main__":
         if not arguments.dry_run:
             depgraph.rest.postJson(
                 "/repos/{owner}/{repo}/dependency-graph/snapshots",
-                exportBOM(dependencies, lockfile, sha=arguments.sha, ref=arguments.ref),
+                exportSnapshot(
+                    dependencies, lockfile, sha=arguments.sha, ref=arguments.ref
+                ),
                 expected=201,
             )
 
@@ -103,7 +107,7 @@ if __name__ == "__main__":
             logger.info("Dry run mode, skipping submission")
             print(
                 json.dumps(
-                    exportBOM(
+                    exportSnapshot(
                         dependencies, lockfile, sha=arguments.sha, ref=arguments.ref
                     ),
                     indent=2,
