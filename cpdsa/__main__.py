@@ -3,6 +3,8 @@ import json
 import logging
 import argparse
 
+from datetime import datetime, timezone
+
 from ghastoolkit import GitHub, DependencyGraph
 
 from cpdsa import __name__ as tool_name
@@ -36,6 +38,19 @@ parser_github.add_argument(
     default=os.environ.get("GITHUB_TOKEN"),
     help="GitHub API Token",
 )
+
+
+def exportBOM(dependencies, path: str, sha: str = "", ref: str = "") -> dict:
+    """Export the dependency snapshot payload.
+
+    ghastoolkit sets `scanned` to a naive local timestamp which the snapshots
+    API rejects, so it is replaced with an RFC 3339 UTC timestamp.
+    """
+    bom = dependencies.exportBOM(tool_name, path, sha=sha, ref=ref)
+    bom["scanned"] = (
+        datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    )
+    return bom
 
 
 if __name__ == "__main__":
@@ -77,8 +92,10 @@ if __name__ == "__main__":
         logger.info(f"Dependencies Count :: {len(dependencies)}")
 
         if not arguments.dry_run:
-            depgraph.submitDependencies(
-                dependencies, tool_name, lockfile, sha=arguments.sha, ref=arguments.ref
+            depgraph.rest.postJson(
+                "/repos/{owner}/{repo}/dependency-graph/snapshots",
+                exportBOM(dependencies, lockfile, sha=arguments.sha, ref=arguments.ref),
+                expected=201,
             )
 
             logger.info("Submitted BOM!")
@@ -86,8 +103,8 @@ if __name__ == "__main__":
             logger.info("Dry run mode, skipping submission")
             print(
                 json.dumps(
-                    dependencies.exportBOM(
-                        tool_name, lockfile, sha=arguments.sha, ref=arguments.ref
+                    exportBOM(
+                        dependencies, lockfile, sha=arguments.sha, ref=arguments.ref
                     ),
                     indent=2,
                 )
