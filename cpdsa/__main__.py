@@ -55,6 +55,19 @@ def exportSnapshot(
     return bom
 
 
+def submitSnapshot(depgraph: DependencyGraph, snapshot: dict):
+    """Submit the dependency snapshot to GitHub.
+
+    `DependencyGraph.submitDependencies` is not used as it rebuilds the payload
+    with the invalid `scanned` timestamp, see `exportSnapshot`.
+    """
+    depgraph.rest.postJson(
+        "/repos/{owner}/{repo}/dependency-graph/snapshots",
+        snapshot,
+        expected=201,
+    )
+
+
 if __name__ == "__main__":
     arguments = parser.parse_args()
 
@@ -94,12 +107,11 @@ if __name__ == "__main__":
         logger.info(f"Dependencies Count :: {len(dependencies)}")
 
         if not arguments.dry_run:
-            depgraph.rest.postJson(
-                "/repos/{owner}/{repo}/dependency-graph/snapshots",
+            submitSnapshot(
+                depgraph,
                 exportSnapshot(
                     dependencies, lockfile, sha=arguments.sha, ref=arguments.ref
                 ),
-                expected=201,
             )
 
             logger.info("Submitted BOM!")
