@@ -2,7 +2,7 @@ import os
 import json
 import logging
 
-from datetime import datetime
+from datetime import datetime, timezone
 import re
 from typing import Optional, Union, Dict
 
@@ -124,7 +124,7 @@ class Dependencies:
             "ref": ref,
             "job": {"correlator": tool, "id": tool},
             "detector": {"name": tool, "version": version, "url": url},
-            "scanned": datetime.now().isoformat(),
+            "scanned": datetime.now(timezone.utc).isoformat(),
             "manifests": {
                 tool: {
                     "name": tool,
